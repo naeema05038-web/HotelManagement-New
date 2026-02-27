@@ -2,7 +2,7 @@ import java.io.Serializable;
 
 public class Customer implements Serializable {
 
-    private static int counter = 1; // Auto-increment ID
+    private static int counter = 1; 
     private int customerId;
     private String fullName;
     private String phone;
@@ -27,7 +27,7 @@ public class Customer implements Serializable {
         this.gender = gender;
     }
 
-    // Getters & Setters
+    
     public int getCustomerId() { return customerId; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
