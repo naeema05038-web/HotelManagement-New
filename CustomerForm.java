@@ -1,3 +1,4 @@
+
 import java.awt.*;
 import java.util.ArrayList;
 import javax.swing.*;
@@ -15,12 +16,12 @@ public class CustomerForm extends JFrame {
 
     public CustomerForm() {
         setTitle("Customer Management");
-        setSize(1000,600);
+        setSize(1000, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(10,10));
+        setLayout(new BorderLayout(10, 10));
 
-        JPanel form = new JPanel(new GridLayout(8,2,5,5));
+        JPanel form = new JPanel(new GridLayout(8, 2, 5, 5));
         form.setBorder(BorderFactory.createTitledBorder("Customer Information"));
 
         txtFullName = new JTextField();
@@ -32,19 +33,27 @@ public class CustomerForm extends JFrame {
         chkConsent = new JCheckBox("Consent Given");
         cmbGender = new JComboBox<>(Gender.values());
 
-        form.add(new JLabel("Full Name")); form.add(txtFullName);
-        form.add(new JLabel("Phone")); form.add(txtPhone);
-        form.add(new JLabel("Email")); form.add(txtEmail);
-        form.add(new JLabel("City")); form.add(txtCity);
-        form.add(new JLabel("Country")); form.add(txtCountry);
-        form.add(new JLabel("National ID")); form.add(txtNationalId);
-        form.add(new JLabel("Gender")); form.add(cmbGender);
-        form.add(new JLabel("Consent")); form.add(chkConsent);
+        form.add(new JLabel("Full Name"));
+        form.add(txtFullName);
+        form.add(new JLabel("Phone"));
+        form.add(txtPhone);
+        form.add(new JLabel("Email"));
+        form.add(txtEmail);
+        form.add(new JLabel("City"));
+        form.add(txtCity);
+        form.add(new JLabel("Country"));
+        form.add(txtCountry);
+        form.add(new JLabel("National ID"));
+        form.add(txtNationalId);
+        form.add(new JLabel("Gender"));
+        form.add(cmbGender);
+        form.add(new JLabel("Consent"));
+        form.add(chkConsent);
 
         add(form, BorderLayout.NORTH);
 
         model = new DefaultTableModel(
-                new String[]{"ID","Full Name","Phone","Email","City","Country","National ID","Gender","Consent"},0);
+                new String[]{"ID", "Full Name", "Phone", "Email", "City", "Country", "National ID", "Gender", "Consent"}, 0);
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
@@ -57,9 +66,12 @@ public class CustomerForm extends JFrame {
         JButton btnSearch = new JButton("Search");
 
         JPanel panelBtn = new JPanel();
-        panelBtn.add(btnSave); panelBtn.add(btnUpdate);
-        panelBtn.add(btnDelete); panelBtn.add(btnClear);
-        panelBtn.add(new JLabel("Search Name:")); panelBtn.add(txtSearch);
+        panelBtn.add(btnSave);
+        panelBtn.add(btnUpdate);
+        panelBtn.add(btnDelete);
+        panelBtn.add(btnClear);
+        panelBtn.add(new JLabel("Search Name:"));
+        panelBtn.add(txtSearch);
         panelBtn.add(btnSearch);
 
         add(panelBtn, BorderLayout.SOUTH);
@@ -85,16 +97,22 @@ public class CustomerForm extends JFrame {
                     txtCountry.getText(),
                     txtNationalId.getText(),
                     chkConsent.isSelected(),
-                    (Gender)cmbGender.getSelectedItem()
+                    (Gender) cmbGender.getSelectedItem()
             );
             service.addCustomer(c);
-            loadTable(); clearFields();
-        } catch(Exception e) { JOptionPane.showMessageDialog(this,"Invalid Input"); }
+            loadTable();
+            clearFields();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Invalid Input");
+        }
     }
 
     void updateCustomer() {
         int row = table.getSelectedRow();
-        if(row < 0) { JOptionPane.showMessageDialog(this,"Select row to update"); return; }
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select row to update");
+            return;
+        }
         try {
             Customer c = service.getCustomers().get(row);
             c.setFullName(txtFullName.getText());
@@ -104,29 +122,41 @@ public class CustomerForm extends JFrame {
             c.setCountry(txtCountry.getText());
             c.setNationalId(txtNationalId.getText());
             c.setConsent(chkConsent.isSelected());
-            c.setGender((Gender)cmbGender.getSelectedItem());
-            service.updateCustomer(row,c);
-            loadTable(); clearFields();
-        } catch(Exception e) { JOptionPane.showMessageDialog(this,"Invalid Input"); }
+            c.setGender((Gender) cmbGender.getSelectedItem());
+            service.updateCustomer(row, c);
+            loadTable();
+            clearFields();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Invalid Input");
+        }
     }
 
     void deleteCustomer() {
         int row = table.getSelectedRow();
-        if(row < 0) { JOptionPane.showMessageDialog(this,"Select row to delete"); return; }
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select row to delete");
+            return;
+        }
         service.deleteCustomer(row);
-        loadTable(); clearFields();
+        loadTable();
+        clearFields();
     }
 
     void clearFields() {
-        txtFullName.setText(""); txtPhone.setText(""); txtEmail.setText("");
-        txtCity.setText(""); txtCountry.setText(""); txtNationalId.setText("");
-        chkConsent.setSelected(false); cmbGender.setSelectedIndex(0);
+        txtFullName.setText("");
+        txtPhone.setText("");
+        txtEmail.setText("");
+        txtCity.setText("");
+        txtCountry.setText("");
+        txtNationalId.setText("");
+        chkConsent.setSelected(false);
+        cmbGender.setSelectedIndex(0);
         table.clearSelection();
     }
 
     void fillFields() {
         int row = table.getSelectedRow();
-        if(row >=0) {
+        if (row >= 0) {
             Customer c = service.getCustomers().get(row);
             txtFullName.setText(c.getFullName());
             txtPhone.setText(c.getPhone());
@@ -142,8 +172,27 @@ public class CustomerForm extends JFrame {
     void loadTable() {
         model.setRowCount(0);
         ArrayList<Customer> list = service.getCustomers();
-        for(Customer c : list) {
+        for (Customer c : list) {
             model.addRow(new Object[]{
+                c.getCustomerId(),
+                c.getFullName(),
+                c.getPhone(),
+                c.getEmail(),
+                c.getCity(),
+                c.getCountry(),
+                c.getNationalId(),
+                c.getGender(),
+                c.isConsent()
+            });
+        }
+    }
+
+    void searchCustomer() {
+        String key = txtSearch.getText().toLowerCase();
+        model.setRowCount(0);
+        for (Customer c : service.getCustomers()) {
+            if (c.getFullName().toLowerCase().contains(key)) {
+                model.addRow(new Object[]{
                     c.getCustomerId(),
                     c.getFullName(),
                     c.getPhone(),
@@ -153,25 +202,6 @@ public class CustomerForm extends JFrame {
                     c.getNationalId(),
                     c.getGender(),
                     c.isConsent()
-            });
-        }
-    }
-
-    void searchCustomer() {
-        String key = txtSearch.getText().toLowerCase();
-        model.setRowCount(0);
-        for(Customer c : service.getCustomers()) {
-            if(c.getFullName().toLowerCase().contains(key)) {
-                model.addRow(new Object[]{
-                        c.getCustomerId(),
-                        c.getFullName(),
-                        c.getPhone(),
-                        c.getEmail(),
-                        c.getCity(),
-                        c.getCountry(),
-                        c.getNationalId(),
-                        c.getGender(),
-                        c.isConsent()
                 });
             }
         }
