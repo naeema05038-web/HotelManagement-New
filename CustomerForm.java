@@ -6,12 +6,16 @@ import javax.swing.table.DefaultTableModel;
 
 public class CustomerForm extends JFrame {
 
+    // Form fields
     JTextField txtFullName, txtPhone, txtEmail, txtCity, txtCountry, txtNationalId, txtSearch;
     JCheckBox chkConsent;
     JComboBox<Gender> cmbGender;
+
+    // Table and model
     JTable table;
     DefaultTableModel model;
 
+    // Service layer to handle customer data
     CustomerService service = new CustomerService();
 
     public CustomerForm() {
@@ -21,6 +25,7 @@ public class CustomerForm extends JFrame {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
+        // --- Form Panel ---
         JPanel form = new JPanel(new GridLayout(8, 2, 5, 5));
         form.setBorder(BorderFactory.createTitledBorder("Customer Information"));
 
@@ -33,6 +38,7 @@ public class CustomerForm extends JFrame {
         chkConsent = new JCheckBox("Consent Given");
         cmbGender = new JComboBox<>(Gender.values());
 
+        // Add labels and fields
         form.add(new JLabel("Full Name"));
         form.add(txtFullName);
         form.add(new JLabel("Phone"));
@@ -52,11 +58,15 @@ public class CustomerForm extends JFrame {
 
         add(form, BorderLayout.NORTH);
 
+        // --- Table Panel ---
         model = new DefaultTableModel(
-                new String[]{"ID", "Full Name", "Phone", "Email", "City", "Country", "National ID", "Gender", "Consent"}, 0);
+                new String[]{"ID", "Full Name", "Phone", "Email", "City", "Country", "National ID", "Gender", "Consent"},
+                0
+        );
         table = new JTable(model);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
+        // --- Button Panel ---
         JButton btnSave = new JButton("Save");
         JButton btnUpdate = new JButton("Update");
         JButton btnDelete = new JButton("Delete");
@@ -76,17 +86,23 @@ public class CustomerForm extends JFrame {
 
         add(panelBtn, BorderLayout.SOUTH);
 
+        // --- Button Actions ---
         btnSave.addActionListener(e -> saveCustomer());
         btnUpdate.addActionListener(e -> updateCustomer());
         btnDelete.addActionListener(e -> deleteCustomer());
         btnClear.addActionListener(e -> clearFields());
         btnSearch.addActionListener(e -> searchCustomer());
+
+        // Fill form fields when a row is selected
         table.getSelectionModel().addListSelectionListener(e -> fillFields());
 
+        // Load initial table data
         loadTable();
+
         setVisible(true);
     }
 
+    // --- CRUD Methods ---
     void saveCustomer() {
         try {
             Customer c = CustomerFactory.createCustomer(
@@ -113,6 +129,7 @@ public class CustomerForm extends JFrame {
             JOptionPane.showMessageDialog(this, "Select row to update");
             return;
         }
+
         try {
             Customer c = service.getCustomers().get(row);
             c.setFullName(txtFullName.getText());
@@ -137,6 +154,7 @@ public class CustomerForm extends JFrame {
             JOptionPane.showMessageDialog(this, "Select row to delete");
             return;
         }
+
         service.deleteCustomer(row);
         loadTable();
         clearFields();

@@ -4,7 +4,6 @@ import java.io.Serializable;
 public class Customer implements Serializable {
 
     private static int counter = 1;
-
     private int customerId;
     private String fullName;
     private String phone;
@@ -15,8 +14,9 @@ public class Customer implements Serializable {
     private boolean consent;
     private Gender gender;
 
-    public Customer(String fullName, String phone, String email, String city,
-            String country, String nationalId, boolean consent, Gender gender) {
+    public Customer(String fullName, String phone, String email,
+            String city, String country, String nationalId,
+            boolean consent, Gender gender) {
         this.customerId = counter++;
         this.fullName = fullName;
         this.phone = phone;
@@ -94,5 +94,10 @@ public class Customer implements Serializable {
 
     public void setGender(Gender gender) {
         this.gender = gender;
+    }
+
+    @Override
+    public String toString() {
+        return customerId + " - " + fullName;
     }
 }

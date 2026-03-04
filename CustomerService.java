@@ -1,26 +1,27 @@
+
 import java.util.ArrayList;
 
 public class CustomerService {
 
-    private ArrayList<Customer> customers = new ArrayList<>();
+    private CustomerRepository repo;
+
+    public CustomerService() {
+        repo = CustomerRepository.getInstance();
+    }
 
     public void addCustomer(Customer c) {
-        customers.add(c);
+        repo.add(c);
     }
 
     public void updateCustomer(int index, Customer c) {
-        if(index >= 0 && index < customers.size()) {
-            customers.set(index, c);
-        }
+        repo.update(index, c);
     }
 
     public void deleteCustomer(int index) {
-        if(index >=0 && index < customers.size()) {
-            customers.remove(index);
-        }
+        repo.delete(index);
     }
 
     public ArrayList<Customer> getCustomers() {
-        return customers;
+        return repo.getAll();
     }
 }
