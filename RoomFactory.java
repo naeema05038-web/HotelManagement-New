@@ -4,4 +4,5 @@ public class RoomFactory {
         return new Room(roomNo, type, price, floor, capacity, cleanStatus, available);
     }
 
+    
 }
