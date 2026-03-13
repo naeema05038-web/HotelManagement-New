@@ -1,200 +1,219 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.Iterator;
 
 public class RoomForm extends JFrame {
 
-    private JTextField txtRoomNo, txtPrice, txtFloor, txtCapacity, txtClean;
-    private JComboBox<RoomType> cmbType;
-    private JCheckBox chkAvailable;
-    private JTable table;
-    private DefaultTableModel model;
+    JTable table;
+    DefaultTableModel model;
 
-    public RoomForm(){
+    JTextArea txtInfo;
 
-        setTitle("Hotel Room Management System");
-        setSize(950,550);
+    JButton addBtn, editBtn, deleteBtn;
+
+    public RoomForm() {
+
+        setTitle("Room Management");
+        setSize(950, 600);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout(10,10));
+        setLayout(new BorderLayout(10, 10));
 
-        /* ---------- TITLE ---------- */
-
-        JLabel title = new JLabel("Hotel Room Management System",SwingConstants.CENTER);
-        title.setFont(new Font("Arial",Font.BOLD,24));
-        title.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        add(title,BorderLayout.NORTH);
-
-        /* ---------- FORM PANEL ---------- */
-
-        JPanel formPanel = new JPanel();
-        formPanel.setBorder(BorderFactory.createTitledBorder("Room Information"));
-        formPanel.setLayout(new GridLayout(7,2,10,10));
-
-        txtRoomNo = new JTextField();
-        txtPrice = new JTextField();
-        txtFloor = new JTextField();
-        txtCapacity = new JTextField();
-        txtClean = new JTextField();
-
-        cmbType = new JComboBox<>(RoomType.values());
-        chkAvailable = new JCheckBox("Available");
-
-        formPanel.add(new JLabel("Room Number:"));
-        formPanel.add(txtRoomNo);
-
-        formPanel.add(new JLabel("Room Type:"));
-        formPanel.add(cmbType);
-
-        formPanel.add(new JLabel("Price:"));
-        formPanel.add(txtPrice);
-
-        formPanel.add(new JLabel("Floor Number:"));
-        formPanel.add(txtFloor);
-
-        formPanel.add(new JLabel("Capacity:"));
-        formPanel.add(txtCapacity);
-
-        formPanel.add(new JLabel("Clean Status:"));
-        formPanel.add(txtClean);
-
-        formPanel.add(new JLabel(""));
-        formPanel.add(chkAvailable);
-
-        add(formPanel,BorderLayout.WEST);
-
-        /* ---------- TABLE ---------- */
-
+    
         model = new DefaultTableModel(
-                new String[]{"RoomNo","Type","Price","Floor","Capacity","Clean","Available"},0);
-
+                new String[]{"RoomNo", "Type", "Price", "Floor", "Capacity", "Clean", "Available"}, 0);
         table = new JTable(model);
-        table.setRowHeight(25);
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createTitledBorder("Room List"));
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setPreferredSize(new Dimension(0, 200));
+        add(tableScroll, BorderLayout.NORTH);
 
-        add(scrollPane,BorderLayout.CENTER);
 
-        /* ---------- BUTTON PANEL ---------- */
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BorderLayout(5, 5));
+
+
+        txtInfo = new JTextArea(4, 80);
+        txtInfo.setEditable(false);
+        txtInfo.setFont(new Font("Arial", Font.PLAIN, 14));
+        txtInfo.setForeground(Color.BLUE);
+        txtInfo.setBorder(BorderFactory.createTitledBorder("Selected Room Info"));
+        bottomPanel.add(new JScrollPane(txtInfo), BorderLayout.CENTER);
+
 
         JPanel btnPanel = new JPanel();
-
-        JButton addBtn = new JButton("Add Room");
-        JButton updateBtn = new JButton("Update Room");
-        JButton deleteBtn = new JButton("Delete Room");
-        JButton availableBtn = new JButton("Show Available");
+        addBtn = new JButton("Add Room");
+        addBtn.setPreferredSize(new Dimension(120, 35));
+        editBtn = new JButton("Edit Room");
+        editBtn.setPreferredSize(new Dimension(120, 35));
+        deleteBtn = new JButton("Delete Room");
+        deleteBtn.setPreferredSize(new Dimension(120, 35));
 
         btnPanel.add(addBtn);
-        btnPanel.add(updateBtn);
+        btnPanel.add(editBtn);
         btnPanel.add(deleteBtn);
-        btnPanel.add(availableBtn);
 
-        add(btnPanel,BorderLayout.SOUTH);
+        bottomPanel.add(btnPanel, BorderLayout.SOUTH);
 
-        /* ---------- BUTTON ACTIONS ---------- */
+        add(bottomPanel, BorderLayout.CENTER);
 
-        addBtn.addActionListener(e -> addRoom());
-        updateBtn.addActionListener(e -> updateRoom());
+
+        table.getSelectionModel().addListSelectionListener(e -> fillTextArea());
+        addBtn.addActionListener(e -> openRoomDialog("Add Room", null));
+        editBtn.addActionListener(e -> editSelectedRoom());
         deleteBtn.addActionListener(e -> deleteRoom());
-        availableBtn.addActionListener(e -> showAvailable());
 
         refreshTable();
-
         setVisible(true);
     }
 
-    /* ---------- ADD ROOM ---------- */
 
-    private void addRoom(){
-
-        try{
-
-            int roomNo = Integer.parseInt(txtRoomNo.getText());
-            RoomType type = (RoomType) cmbType.getSelectedItem();
-            double price = Double.parseDouble(txtPrice.getText());
-            int floor = Integer.parseInt(txtFloor.getText());
-            int capacity = Integer.parseInt(txtCapacity.getText());
-            String clean = txtClean.getText();
-            boolean available = chkAvailable.isSelected();
-
-            Room room = RoomFactory.createRoom(roomNo,type,price,floor,capacity,clean,available);
-
-            RoomManager.getInstance().addRoom(room);
-
-            refreshTable();
-            clearFields();
-
-        }
-        catch(Exception ex){
-            JOptionPane.showMessageDialog(this,"Please enter valid numeric values!");
+    void fillTextArea() {
+        int row = table.getSelectedRow();
+        if (row >= 0) {
+            String info = "Room No: " + table.getValueAt(row, 0) +
+                    " | Type: " + table.getValueAt(row, 1) +
+                    " | Price: " + table.getValueAt(row, 2) +
+                    " | Floor: " + table.getValueAt(row, 3) +
+                    " | Capacity: " + table.getValueAt(row, 4) +
+                    " | Clean: " + table.getValueAt(row, 5) +
+                    " | Available: " + table.getValueAt(row, 6);
+            txtInfo.setText(info);
+        } else {
+            txtInfo.setText("");
         }
     }
 
-    /* ---------- UPDATE ROOM ---------- */
 
-    private void updateRoom(){
-
+    void editSelectedRoom() {
         int row = table.getSelectedRow();
-
-        if(row==-1){
-            JOptionPane.showMessageDialog(this,"Select a room to update!");
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select a room first");
             return;
         }
 
-        try{
+        Room r = RoomFactory.createRoom(
+                Integer.parseInt(table.getValueAt(row, 0).toString()),
+                (RoomType) table.getValueAt(row, 1),
+                Double.parseDouble(table.getValueAt(row, 2).toString()),
+                Integer.parseInt(table.getValueAt(row, 3).toString()),
+                Integer.parseInt(table.getValueAt(row, 4).toString()),
+                table.getValueAt(row, 5).toString(),
+                Boolean.parseBoolean(table.getValueAt(row, 6).toString())
+        );
 
-            int roomNo = Integer.parseInt(txtRoomNo.getText());
-            RoomType type = (RoomType) cmbType.getSelectedItem();
-            double price = Double.parseDouble(txtPrice.getText());
-            int floor = Integer.parseInt(txtFloor.getText());
-            int capacity = Integer.parseInt(txtCapacity.getText());
-            String clean = txtClean.getText();
-            boolean available = chkAvailable.isSelected();
-
-            Room updatedRoom = RoomFactory.createRoom(roomNo,type,price,floor,capacity,clean,available);
-
-            RoomManager.getInstance().updateRoom(updatedRoom);
-
-            refreshTable();
-
-        }
-        catch(Exception ex){
-            JOptionPane.showMessageDialog(this,"Invalid input!");
-        }
+        openRoomDialog("Edit Room", r);
     }
 
-    /* ---------- DELETE ROOM ---------- */
 
-    private void deleteRoom(){
+    void openRoomDialog(String title, Room room) {
+        JDialog dialog = new JDialog(this, title, true);
+        dialog.setSize(500, 520);
+        dialog.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        JTextField rNo = new JTextField();
+        JTextField price = new JTextField();
+        JTextField floor = new JTextField();
+        JTextField cap = new JTextField();
+        JTextField clean = new JTextField();
+        JComboBox<RoomType> type = new JComboBox<>(RoomType.values());
+        JCheckBox avail = new JCheckBox("Available");
+
+
+        if (room != null) {
+            rNo.setText(String.valueOf(room.getRoomNo()));
+            price.setText(String.valueOf(room.getPrice()));
+            floor.setText(String.valueOf(room.getFloor()));
+            cap.setText(String.valueOf(room.getCapacity()));
+            clean.setText(room.getCleanStatus());
+            type.setSelectedItem(room.getType());
+            avail.setSelected(room.isAvailable());
+        }
+
+        gbc.gridx = 0; gbc.gridy = 0; dialog.add(new JLabel("Room No:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 0; dialog.add(rNo, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 1; dialog.add(new JLabel("Type:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 1; dialog.add(type, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 2; dialog.add(new JLabel("Price:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 2; dialog.add(price, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 3; dialog.add(new JLabel("Floor:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 3; dialog.add(floor, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 4; dialog.add(new JLabel("Capacity:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 4; dialog.add(cap, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 5; dialog.add(new JLabel("Clean Status:"), gbc);
+        gbc.gridx = 1; gbc.gridy = 5; dialog.add(clean, gbc);
+
+        gbc.gridx = 0; gbc.gridy = 6; dialog.add(new JLabel(""), gbc);
+        gbc.gridx = 1; gbc.gridy = 6; dialog.add(avail, gbc);
+
+        JButton save = new JButton("Save");
+        save.setPreferredSize(new Dimension(130, 40));
+        gbc.gridx = 0; gbc.gridy = 7; gbc.gridwidth = 2;
+        dialog.add(save, gbc);
+
+        save.addActionListener(e -> {
+            if (rNo.getText().isEmpty() || price.getText().isEmpty() || floor.getText().isEmpty() ||
+                    cap.getText().isEmpty() || clean.getText().isEmpty()) {
+                JOptionPane.showMessageDialog(dialog, "All fields must be filled!", "Warning", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            try {
+                int roomNoVal = Integer.parseInt(rNo.getText());
+                double priceVal = Double.parseDouble(price.getText());
+                int floorVal = Integer.parseInt(floor.getText());
+                int capVal = Integer.parseInt(cap.getText());
+
+                Room rNew = RoomFactory.createRoom(
+                        roomNoVal,
+                        (RoomType) type.getSelectedItem(),
+                        priceVal,
+                        floorVal,
+                        capVal,
+                        clean.getText(),
+                        avail.isSelected()
+                );
+
+                if (room == null) {
+                    RoomManager.getInstance().addRoom(rNew);
+                } else {
+                    RoomManager.getInstance().updateRoom(rNew);
+                }
+
+                refreshTable();
+                dialog.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Invalid input!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    void deleteRoom() {
         int row = table.getSelectedRow();
-
-        if(row==-1){
-            JOptionPane.showMessageDialog(this,"Select a room to delete!");
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select a room first");
             return;
         }
 
-        int roomNo = (int) model.getValueAt(row,0);
-
+        int roomNo = Integer.parseInt(table.getValueAt(row, 0).toString());
         RoomManager.getInstance().deleteRoom(roomNo);
-
         refreshTable();
     }
 
-    /* ---------- SHOW AVAILABLE ---------- */
-
-    private void showAvailable(){
-
+    void refreshTable() {
         model.setRowCount(0);
-
-        Iterator<Room> iterator = RoomManager.getInstance().availableRoomsIterator();
-
-        while(iterator.hasNext()){
-
-            Room r = iterator.next();
-
+        for (Room r : RoomManager.getInstance().getAllRooms()) {
             model.addRow(new Object[]{
                     r.getRoomNo(),
                     r.getType(),
@@ -205,38 +224,6 @@ public class RoomForm extends JFrame {
                     r.isAvailable()
             });
         }
-    }
-
-    /* ---------- REFRESH TABLE ---------- */
-
-    private void refreshTable(){
-
-        model.setRowCount(0);
-
-        for(Room r : RoomManager.getInstance().getAllRooms()){
-
-            model.addRow(new Object[]{
-                    r.getRoomNo(),
-                    r.getType(),
-                    r.getPrice(),
-                    r.getFloor(),
-                    r.getCapacity(),
-                    r.getCleanStatus(),
-                    r.isAvailable()
-            });
-        }
-    }
-
-    /* ---------- CLEAR INPUT ---------- */
-
-    private void clearFields(){
-
-        txtRoomNo.setText("");
-        txtPrice.setText("");
-        txtFloor.setText("");
-        txtCapacity.setText("");
-        txtClean.setText("");
-        chkAvailable.setSelected(false);
     }
 
     public static void main(String[] args) {
