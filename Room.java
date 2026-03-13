@@ -2,6 +2,7 @@ import java.io.Serializable;
 
 public class Room implements Serializable {
 
+   
     private int roomNo;
     private RoomType type;
     private double price;
