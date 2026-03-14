@@ -1,232 +1,304 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
+// Main Reservation Form
 public class ReservationForm extends JFrame {
-
-    JTextField txtId, txtCustomerId, txtRoomId, txtCheckIn, txtCheckOut, txtSearch;
 
     JTable table;
     DefaultTableModel model;
+    JTextArea txtInfo;
+    JTextField txtSearch;
 
-    public ReservationForm(){
+    JButton addBtn, editBtn, deleteBtn, refreshBtn, historyBtn, roomHistoryBtn, revenueBtn, exportBtn;
 
-        setTitle("Reservation Management");
-        setSize(950,550);
+    public ReservationForm() {
+        setTitle("Hotel Reservation System");
+        setSize(1200, 600);
         setLocationRelativeTo(null);
-        setLayout(new BorderLayout(10,10));
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
 
-        JLabel title = new JLabel("Reservation Management System",SwingConstants.CENTER);
-        title.setFont(new Font("Arial",Font.BOLD,22));
-
-        add(title,BorderLayout.NORTH);
-
-        JPanel form = new JPanel(new GridLayout(5,2,10,10));
-        form.setBorder(BorderFactory.createTitledBorder("Reservation Information"));
-
-        txtId = new JTextField();
-        txtCustomerId = new JTextField();
-        txtRoomId = new JTextField();
-        txtCheckIn = new JTextField();
-        txtCheckOut = new JTextField();
-
-        form.add(new JLabel("Reservation ID"));
-        form.add(txtId);
-
-        form.add(new JLabel("Customer ID"));
-        form.add(txtCustomerId);
-
-        form.add(new JLabel("Room ID"));
-        form.add(txtRoomId);
-
-        form.add(new JLabel("Check-In (yyyy-mm-dd)"));
-        form.add(txtCheckIn);
-
-        form.add(new JLabel("Check-Out (yyyy-mm-dd)"));
-        form.add(txtCheckOut);
-
-        add(form,BorderLayout.WEST);
-
-        model = new DefaultTableModel(
-                new String[]{"ResID","CustomerID","RoomID","CheckIn","CheckOut"},0
-        );
+        model = new DefaultTableModel(new String[]{
+                "ID", "Name", "Gender", "Email", "Phone", "City", "Country",
+                "NID", "Consent", "Room", "Type", "Price", "CheckIn", "CheckOut"}, 0);
 
         table = new JTable(model);
+        add(new JScrollPane(table), BorderLayout.NORTH);
 
-        add(new JScrollPane(table),BorderLayout.CENTER);
+        txtInfo = new JTextArea(6, 80);
+        txtInfo.setEditable(false);
+        txtInfo.setForeground(Color.BLUE);
+        add(new JScrollPane(txtInfo), BorderLayout.CENTER);
 
-        JPanel btnPanel = new JPanel();
+        JPanel panel = new JPanel();
+        addBtn = new JButton("Add");
+        editBtn = new JButton("Edit");
+        deleteBtn = new JButton("Delete");
+        refreshBtn = new JButton("Refresh");
+        historyBtn = new JButton("Customer History");
+        roomHistoryBtn = new JButton("Room History");
+        revenueBtn = new JButton("Total Revenue");
+        exportBtn = new JButton("Export CSV");
+        txtSearch = new JTextField(8);
+        JButton searchBtn = new JButton("Search");
 
-        JButton btnAdd = new JButton("Add");
-        JButton btnUpdate = new JButton("Update");
-        JButton btnDelete = new JButton("Delete");
-        JButton btnRefresh = new JButton("Refresh");
+        JButton[] buttons = {addBtn, editBtn, deleteBtn, refreshBtn,
+                historyBtn, roomHistoryBtn, revenueBtn, exportBtn, searchBtn};
 
-        txtSearch = new JTextField(10);
-        JButton btnSearch = new JButton("Search");
+        for (JButton b : buttons) {
+            b.setBackground(new Color(30, 144, 255));
+            b.setForeground(Color.WHITE);
+        }
 
-        btnPanel.add(btnAdd);
-        btnPanel.add(btnUpdate);
-        btnPanel.add(btnDelete);
-        btnPanel.add(btnRefresh);
+        panel.add(addBtn); panel.add(editBtn); panel.add(deleteBtn); panel.add(refreshBtn);
+        panel.add(historyBtn); panel.add(roomHistoryBtn); panel.add(revenueBtn); panel.add(exportBtn);
+        panel.add(new JLabel("Search Room:")); panel.add(txtSearch); panel.add(searchBtn);
 
-        btnPanel.add(new JLabel("Search Room ID"));
-        btnPanel.add(txtSearch);
-        btnPanel.add(btnSearch);
+        add(panel, BorderLayout.SOUTH);
 
-        add(btnPanel,BorderLayout.SOUTH);
+        addBtn.addActionListener(e -> openDialog(null));
+        editBtn.addActionListener(e -> editReservation());
+        deleteBtn.addActionListener(e -> deleteReservation());
+        refreshBtn.addActionListener(e -> refreshTable());
+        searchBtn.addActionListener(e -> search());
+        historyBtn.addActionListener(e -> showCustomerHistory());
+        roomHistoryBtn.addActionListener(e -> showRoomHistory());
+        revenueBtn.addActionListener(e -> showRevenue());
 
-        btnAdd.addActionListener(e->addReservation());
-        btnUpdate.addActionListener(e->updateReservation());
-        btnDelete.addActionListener(e->deleteReservation());
-        btnRefresh.addActionListener(e->refreshTable());
-        btnSearch.addActionListener(e->searchReservation());
-
-        table.getSelectionModel().addListSelectionListener(e->fillFields());
+        table.getSelectionModel().addListSelectionListener(e -> showInfo());
 
         refreshTable();
-
         setVisible(true);
     }
 
-    private void addReservation(){
-
-        try{
-
-            int id = Integer.parseInt(txtId.getText());
-            int customerId = Integer.parseInt(txtCustomerId.getText());
-            int roomId = Integer.parseInt(txtRoomId.getText());
-
-            String checkIn = txtCheckIn.getText();
-            String checkOut = txtCheckOut.getText();
-
-            Reservation r = ReservationFactory.createReservation(id,customerId,roomId,checkIn,checkOut);
-
-            ReservationManager.getInstance().addReservation(r);
-
-            refreshTable();
-            clearFields();
-
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"Invalid Input!");
+    void refreshTable() {
+        model.setRowCount(0);
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
+            model.addRow(new Object[]{
+                    r.getId(), r.getName(), r.getGender(), r.getEmail(),
+                    r.getPhone(), r.getCity(), r.getCountry(),
+                    r.getNid(), r.getConsent(), r.getRoomNo(),
+                    r.getRoomType(), r.getPrice(),
+                    r.getCheckIn(), r.getCheckOut()
+            });
         }
-
     }
 
-    private void updateReservation(){
-
+    void showInfo() {
         int row = table.getSelectedRow();
+        if (row == -1) return;
+        txtInfo.setText("Customer: " + table.getValueAt(row, 1)
+                + " | Room: " + table.getValueAt(row, 9)
+                + " | CheckIn: " + table.getValueAt(row, 12)
+                + " | CheckOut: " + table.getValueAt(row, 13));
+    }
 
-        if(row == -1){
-            JOptionPane.showMessageDialog(this,"Select a reservation!");
+    void showCustomerHistory() {
+        int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select customer first");
+            return;
+        }
+        String email = table.getValueAt(row, 3).toString();
+        List<Reservation> list = ReservationManager.getInstance().getCustomerHistory(email);
+
+        if (list.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No history for this customer");
             return;
         }
 
-        try{
-
-            int id = Integer.parseInt(txtId.getText());
-            int customerId = Integer.parseInt(txtCustomerId.getText());
-            int roomId = Integer.parseInt(txtRoomId.getText());
-
-            String checkIn = txtCheckIn.getText();
-            String checkOut = txtCheckOut.getText();
-
-            Reservation r = ReservationFactory.createReservation(id,customerId,roomId,checkIn,checkOut);
-
-            ReservationManager.getInstance().updateReservation(row,r);
-
-            refreshTable();
-
-        }catch(Exception e){
-            JOptionPane.showMessageDialog(this,"Invalid Input!");
+        StringBuilder sb = new StringBuilder();
+        sb.append("Customer History for ").append(table.getValueAt(row, 1)).append(":\n\n");
+        for (Reservation r : list) {
+            sb.append("Room ").append(r.getRoomNo())
+              .append(" | Type: ").append(r.getRoomType())
+              .append(" | Price: ").append(r.getPrice())
+              .append(" | CheckIn: ").append(r.getCheckIn())
+              .append(" | CheckOut: ").append(r.getCheckOut())
+              .append("\n");
         }
-
+        JOptionPane.showMessageDialog(this, sb.toString());
     }
 
-    private void deleteReservation(){
-
+    void showRoomHistory() {
         int row = table.getSelectedRow();
+        if (row == -1) {
+            JOptionPane.showMessageDialog(this, "Select room first");
+            return;
+        }
+        int roomNo = (int) table.getValueAt(row, 9);
+        List<Reservation> list = ReservationManager.getInstance().getRoomHistory(roomNo);
 
-        if(row == -1){
-            JOptionPane.showMessageDialog(this,"Select reservation to delete");
+        if (list.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No history for this room");
             return;
         }
 
+        StringBuilder sb = new StringBuilder();
+        sb.append("Room History for Room ").append(roomNo).append(":\n\n");
+        for (Reservation r : list) {
+            sb.append("Customer: ").append(r.getName())
+              .append(" | Email: ").append(r.getEmail())
+              .append(" | Phone: ").append(r.getPhone())
+              .append(" | CheckIn: ").append(r.getCheckIn())
+              .append(" | CheckOut: ").append(r.getCheckOut())
+              .append("\n");
+        }
+        JOptionPane.showMessageDialog(this, sb.toString());
+    }
+
+    void showRevenue() {
+        double total = ReservationManager.getInstance().totalRevenue();
+        JOptionPane.showMessageDialog(this, "Total Revenue: " + total);
+    }
+
+    void exportCSV() {
+        ReservationManager.getInstance().exportCSV();
+        JOptionPane.showMessageDialog(this, "File exported: reservations.csv");
+    }
+
+    void search() {
+        String key = txtSearch.getText();
+        model.setRowCount(0);
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
+            if (String.valueOf(r.getRoomNo()).contains(key)) {
+                model.addRow(new Object[]{
+                        r.getId(), r.getName(), r.getGender(), r.getEmail(),
+                        r.getPhone(), r.getCity(), r.getCountry(),
+                        r.getNid(), r.getConsent(), r.getRoomNo(),
+                        r.getRoomType(), r.getPrice(),
+                        r.getCheckIn(), r.getCheckOut()
+                });
+            }
+        }
+    }
+
+    void deleteReservation() {
+        int row = table.getSelectedRow();
+        if (row == -1) return;
         ReservationManager.getInstance().deleteReservation(row);
-
         refreshTable();
     }
 
-    private void refreshTable(){
-
-        model.setRowCount(0);
-
-        for(Reservation r : ReservationManager.getInstance().getAllReservations()){
-
-            model.addRow(new Object[]{
-                    r.getReservationId(),
-                    r.getCustomerId(),
-                    r.getRoomId(),
-                    r.getCheckIn(),
-                    r.getCheckOut()
-            });
-
-        }
-
-    }
-
-    private void searchReservation(){
-
-        String key = txtSearch.getText();
-
-        model.setRowCount(0);
-
-        for(Reservation r : ReservationManager.getInstance().getAllReservations()){
-
-            if(String.valueOf(r.getRoomId()).contains(key)){
-
-                model.addRow(new Object[]{
-                        r.getReservationId(),
-                        r.getCustomerId(),
-                        r.getRoomId(),
-                        r.getCheckIn(),
-                        r.getCheckOut()
-                });
-
-            }
-
-        }
-
-    }
-
-    private void fillFields(){
-
+    void editReservation() {
         int row = table.getSelectedRow();
-
-        if(row >= 0){
-
-            Reservation r = ReservationManager.getInstance().getAllReservations().get(row);
-
-            txtId.setText(String.valueOf(r.getReservationId()));
-            txtCustomerId.setText(String.valueOf(r.getCustomerId()));
-            txtRoomId.setText(String.valueOf(r.getRoomId()));
-            txtCheckIn.setText(r.getCheckIn());
-            txtCheckOut.setText(r.getCheckOut());
-
-        }
-
+        if (row == -1) return;
+        Reservation r = ReservationManager.getInstance().getAllReservations().get(row);
+        openDialog(r);
     }
 
-    private void clearFields(){
+    void openDialog(Reservation r) {
+        JTextField id = new JTextField();
+        JComboBox<Customer> customerBox = new JComboBox<>();
+        JTextField gender = new JTextField();
+        JTextField email = new JTextField();
+        JTextField phone = new JTextField();
+        JTextField city = new JTextField();
+        JTextField country = new JTextField();
+        JTextField nid = new JTextField();
+        JTextField consent = new JTextField();
+        JComboBox<Room> roomBox = new JComboBox<>();
+        JTextField type = new JTextField();
+        JTextField price = new JTextField();
+        JTextField in = new JTextField();
+        JTextField out = new JTextField();
 
-        txtId.setText("");
-        txtCustomerId.setText("");
-        txtRoomId.setText("");
-        txtCheckIn.setText("");
-        txtCheckOut.setText("");
-        table.clearSelection();
+        // Load customers
+        for (Customer c : CustomerServiceHolder.getInstance().getCustomers()) {
+            customerBox.addItem(c);
+        }
+        customerBox.addActionListener(e -> {
+            Customer sel = (Customer) customerBox.getSelectedItem();
+            if (sel != null) {
+                gender.setText(sel.getGender().toString());
+                email.setText(sel.getEmail());
+                phone.setText(sel.getPhone());
+                city.setText(sel.getCity());
+                country.setText(sel.getCountry());
+                consent.setText(String.valueOf(sel.isConsent()));
+            }
+        });
 
+        // Load available rooms
+        for (Room room : RoomManager.getInstance().getAllRooms()) {
+            roomBox.addItem(room);
+        }
+        roomBox.addActionListener(e -> {
+            Room sel = (Room) roomBox.getSelectedItem();
+            if (sel != null) {
+                type.setText(sel.getTypeString());
+                price.setText("" + sel.getPrice());
+            }
+        });
+
+        if (r == null) id.setText("" + ReservationManager.getInstance().generateNextId());
+        else {
+            id.setText("" + r.getId());
+            // Pre-select customer
+            for (int i = 0; i < customerBox.getItemCount(); i++) {
+                if (customerBox.getItemAt(i).getEmail().equals(r.getEmail())) {
+                    customerBox.setSelectedIndex(i); break;
+                }
+            }
+            gender.setText(r.getGender());
+            email.setText(r.getEmail());
+            phone.setText(r.getPhone());
+            city.setText(r.getCity());
+            country.setText(r.getCountry());
+            nid.setText(r.getNid());
+            consent.setText(r.getConsent());
+            in.setText(r.getCheckIn());
+            out.setText(r.getCheckOut());
+
+            // Pre-select room
+            for (int i = 0; i < roomBox.getItemCount(); i++) {
+                if (roomBox.getItemAt(i).getRoomNo() == r.getRoomNo()) {
+                    roomBox.setSelectedIndex(i); break;
+                }
+            }
+        }
+
+        Object[] fields = {
+                "ID", id,
+                "Customer", customerBox,
+                "Gender", gender,
+                "Email", email,
+                "Phone", phone,
+                "City", city,
+                "Country", country,
+                "NID", nid,
+                "Consent", consent,
+                "Room", roomBox,
+                "Type", type,
+                "Price", price,
+                "CheckIn", in,
+                "CheckOut", out
+        };
+
+        int option = JOptionPane.showConfirmDialog(this, fields, "Reservation", JOptionPane.OK_CANCEL_OPTION);
+        if (option == JOptionPane.OK_OPTION) {
+            Customer c = (Customer) customerBox.getSelectedItem();
+            Room room = (Room) roomBox.getSelectedItem();
+            if (c == null || room == null) { JOptionPane.showMessageDialog(this, "Select customer and room"); return; }
+
+            Reservation res = new Reservation(
+                    Integer.parseInt(id.getText()), c.getFullName(), c.getGender().toString(),
+                    c.getEmail(), c.getPhone(), c.getCity(), c.getCountry(),
+                    nid.getText(), consent.getText(),
+                    room.getRoomNo(), room.getTypeString(), room.getPrice(),
+                    in.getText(), out.getText()
+            );
+
+            if (r == null) ReservationManager.getInstance().addReservation(res);
+            else ReservationManager.getInstance().updateReservation(table.getSelectedRow(), res);
+
+            refreshTable();
+        }
     }
 
     public static void main(String[] args) {

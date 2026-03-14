@@ -13,6 +13,7 @@ public class RoomManager implements Serializable {
         }
     }
 
+
     public static RoomManager getInstance() {
         if (instance == null) {
             instance = new RoomManager();
@@ -20,63 +21,61 @@ public class RoomManager implements Serializable {
         return instance;
     }
 
+
     public void addRoom(Room room) {
         rooms.add(room);
         saveRoomsToFile();
     }
+
 
     public void deleteRoom(int roomNo) {
         rooms.removeIf(r -> r.getRoomNo() == roomNo);
         saveRoomsToFile();
     }
 
+
     public void updateRoom(Room updatedRoom) {
-        for(int i=0;i<rooms.size();i++){
-            if(rooms.get(i).getRoomNo()==updatedRoom.getRoomNo()){
-                rooms.set(i,updatedRoom);
+        for (int i = 0; i < rooms.size(); i++) {
+            if (rooms.get(i).getRoomNo() == updatedRoom.getRoomNo()) {
+                rooms.set(i, updatedRoom);
                 break;
             }
         }
         saveRoomsToFile();
     }
 
+
     public List<Room> getAllRooms() {
         return rooms;
     }
 
+
     public Iterator<Room> availableRoomsIterator() {
-
         List<Room> available = new ArrayList<>();
-
-        for(Room r : rooms){
-            if(r.isAvailable()){
+        for (Room r : rooms) {
+            if (r.isAvailable()) {
                 available.add(r);
             }
         }
-
         return available.iterator();
     }
 
+
     private void saveRoomsToFile() {
-        try {
-            ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("rooms.dat"));
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("rooms.dat"))) {
             oos.writeObject(rooms);
-            oos.close();
-        } catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
     @SuppressWarnings("unchecked")
     private void loadRoomsFromFile() {
-
-        try{
-            ObjectInputStream ois = new ObjectInputStream(new FileInputStream("rooms.dat"));
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("rooms.dat"))) {
             rooms = (List<Room>) ois.readObject();
-            ois.close();
-        }catch(Exception e){
+        } catch (Exception e) {
             rooms = new ArrayList<>();
         }
-
     }
 }
