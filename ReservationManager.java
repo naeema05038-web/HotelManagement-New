@@ -1,24 +1,17 @@
-import java.io.*;
 import java.util.*;
 
-public class ReservationManager implements Serializable {
+public class ReservationManager {
 
     private static ReservationManager instance;
     private List<Reservation> reservations;
 
-    private ReservationManager() {
-
-        loadFromFile();
-
-        if(reservations == null){
-            reservations = new ArrayList<>();
-        }
-
+    private ReservationManager(){
+        reservations = new ArrayList<>();
     }
 
     public static ReservationManager getInstance(){
 
-        if(instance == null){
+        if(instance==null){
             instance = new ReservationManager();
         }
 
@@ -27,47 +20,39 @@ public class ReservationManager implements Serializable {
 
     public void addReservation(Reservation r){
         reservations.add(r);
-        saveToFile();
-    }
-
-    public void updateReservation(int index, Reservation r){
-        reservations.set(index,r);
-        saveToFile();
     }
 
     public void deleteReservation(int index){
         reservations.remove(index);
-        saveToFile();
+    }
+
+    public void updateReservation(int index, Reservation r){
+        reservations.set(index,r);
     }
 
     public List<Reservation> getAllReservations(){
         return reservations;
     }
 
-    private void saveToFile(){
 
-        try(ObjectOutputStream oos =
-                new ObjectOutputStream(new FileOutputStream("reservations.dat"))){
-
-            oos.writeObject(reservations);
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-
+    public interface SearchStrategy{
+        boolean match(Reservation r,String key);
     }
 
-    @SuppressWarnings("unchecked")
-    private void loadFromFile(){
 
-        try(ObjectInputStream ois =
-                new ObjectInputStream(new FileInputStream("reservations.dat"))){
+    public List<Reservation> search(String key, SearchStrategy strategy){
 
-            reservations = (List<Reservation>) ois.readObject();
+        List<Reservation> result = new ArrayList<>();
 
-        }catch(Exception e){
-            reservations = new ArrayList<>();
+        for(Reservation r:reservations){
+
+            if(strategy.match(r,key)){
+                result.add(r);
+            }
+
         }
 
+        return result;
     }
+
 }
