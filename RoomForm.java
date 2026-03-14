@@ -1,6 +1,7 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.Iterator;
 
 public class RoomForm extends JFrame {
 
@@ -19,7 +20,7 @@ public class RoomForm extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-    
+   
         model = new DefaultTableModel(
                 new String[]{"RoomNo", "Type", "Price", "Floor", "Capacity", "Clean", "Available"}, 0);
         table = new JTable(model);
@@ -28,10 +29,9 @@ public class RoomForm extends JFrame {
         tableScroll.setPreferredSize(new Dimension(0, 200));
         add(tableScroll, BorderLayout.NORTH);
 
-
+      
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new BorderLayout(5, 5));
-
 
         txtInfo = new JTextArea(4, 80);
         txtInfo.setEditable(false);
@@ -39,7 +39,6 @@ public class RoomForm extends JFrame {
         txtInfo.setForeground(Color.BLUE);
         txtInfo.setBorder(BorderFactory.createTitledBorder("Selected Room Info"));
         bottomPanel.add(new JScrollPane(txtInfo), BorderLayout.CENTER);
-
 
         JPanel btnPanel = new JPanel();
         addBtn = new JButton("Add Room");
@@ -54,10 +53,9 @@ public class RoomForm extends JFrame {
         btnPanel.add(deleteBtn);
 
         bottomPanel.add(btnPanel, BorderLayout.SOUTH);
-
         add(bottomPanel, BorderLayout.CENTER);
 
-
+       
         table.getSelectionModel().addListSelectionListener(e -> fillTextArea());
         addBtn.addActionListener(e -> openRoomDialog("Add Room", null));
         editBtn.addActionListener(e -> editSelectedRoom());
@@ -67,7 +65,7 @@ public class RoomForm extends JFrame {
         setVisible(true);
     }
 
-
+    
     void fillTextArea() {
         int row = table.getSelectedRow();
         if (row >= 0) {
@@ -84,7 +82,7 @@ public class RoomForm extends JFrame {
         }
     }
 
-
+  
     void editSelectedRoom() {
         int row = table.getSelectedRow();
         if (row == -1) {
@@ -105,7 +103,7 @@ public class RoomForm extends JFrame {
         openRoomDialog("Edit Room", r);
     }
 
-
+  
     void openRoomDialog(String title, Room room) {
         JDialog dialog = new JDialog(this, title, true);
         dialog.setSize(500, 520);
@@ -122,7 +120,6 @@ public class RoomForm extends JFrame {
         JComboBox<RoomType> type = new JComboBox<>(RoomType.values());
         JCheckBox avail = new JCheckBox("Available");
 
-
         if (room != null) {
             rNo.setText(String.valueOf(room.getRoomNo()));
             price.setText(String.valueOf(room.getPrice()));
@@ -135,22 +132,16 @@ public class RoomForm extends JFrame {
 
         gbc.gridx = 0; gbc.gridy = 0; dialog.add(new JLabel("Room No:"), gbc);
         gbc.gridx = 1; gbc.gridy = 0; dialog.add(rNo, gbc);
-
         gbc.gridx = 0; gbc.gridy = 1; dialog.add(new JLabel("Type:"), gbc);
         gbc.gridx = 1; gbc.gridy = 1; dialog.add(type, gbc);
-
         gbc.gridx = 0; gbc.gridy = 2; dialog.add(new JLabel("Price:"), gbc);
         gbc.gridx = 1; gbc.gridy = 2; dialog.add(price, gbc);
-
         gbc.gridx = 0; gbc.gridy = 3; dialog.add(new JLabel("Floor:"), gbc);
         gbc.gridx = 1; gbc.gridy = 3; dialog.add(floor, gbc);
-
         gbc.gridx = 0; gbc.gridy = 4; dialog.add(new JLabel("Capacity:"), gbc);
         gbc.gridx = 1; gbc.gridy = 4; dialog.add(cap, gbc);
-
         gbc.gridx = 0; gbc.gridy = 5; dialog.add(new JLabel("Clean Status:"), gbc);
         gbc.gridx = 1; gbc.gridy = 5; dialog.add(clean, gbc);
-
         gbc.gridx = 0; gbc.gridy = 6; dialog.add(new JLabel(""), gbc);
         gbc.gridx = 1; gbc.gridy = 6; dialog.add(avail, gbc);
 
@@ -199,6 +190,7 @@ public class RoomForm extends JFrame {
         dialog.setVisible(true);
     }
 
+    
     void deleteRoom() {
         int row = table.getSelectedRow();
         if (row == -1) {
@@ -211,9 +203,12 @@ public class RoomForm extends JFrame {
         refreshTable();
     }
 
+    
     void refreshTable() {
         model.setRowCount(0);
-        for (Room r : RoomManager.getInstance().getAllRooms()) {
+        Iterator<Room> it = RoomManager.getInstance().availableRoomsIterator();
+        while(it.hasNext()) {
+            Room r = it.next();
             model.addRow(new Object[]{
                     r.getRoomNo(),
                     r.getType(),
