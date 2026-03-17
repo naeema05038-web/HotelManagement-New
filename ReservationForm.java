@@ -15,64 +15,68 @@ public class ReservationForm extends JFrame {
     public ReservationForm(){
 
         setTitle("Reservation Management");
-        setSize(1100,650);
+        setSize(1200,700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
 
-     
+    
         getContentPane().setBackground(Color.BLACK);
+        setLayout(new BorderLayout(10,10));
 
+    
         model = new DefaultTableModel(
                 new String[]{"ID","Name","Email","Room","Type","Price/Day","Total Price","CheckIn","CheckOut"},0);
-
         table = new JTable(model);
+        table.setRowHeight(30);
 
-  
-        table.setBackground(Color.DARK_GRAY);
+    
+        table.setBackground(Color.BLACK);
         table.setForeground(Color.WHITE);
-        table.setGridColor(Color.LIGHT_GRAY);
-        table.setSelectionBackground(new Color(0,120,215)); 
+        table.setSelectionBackground(new Color(0,120,215));
         table.setSelectionForeground(Color.WHITE);
+        table.setGridColor(Color.DARK_GRAY);
 
-        table.setDefaultRenderer(Object.class,new DefaultTableCellRenderer(){
-            public Component getTableCellRendererComponent(
-                    JTable table,Object value,boolean isSelected,
-                    boolean hasFocus,int row,int col){
-
-                Component c = super.getTableCellRendererComponent(
-                        table,value,isSelected,hasFocus,row,col);
-
-                String out = table.getValueAt(row,8).toString();
-
-                if(LocalDate.parse(out).isAfter(LocalDate.now()))
-                    c.setBackground(new Color(100,0,0)); 
-                else
-                    c.setBackground(new Color(0,100,0)); 
-
-                c.setForeground(Color.WHITE);
-
+    
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer(){
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column){
+                Component c = super.getTableCellRendererComponent(table,value,isSelected,hasFocus,row,column);
                 if(isSelected){
-                    c.setBackground(new Color(0,120,215)); 
+                    c.setBackground(new Color(0,120,215));
+                    c.setForeground(Color.WHITE);
+                } else {
+                    c.setBackground(row % 2 == 0 ? new Color(30,30,30) : Color.BLACK);
                     c.setForeground(Color.WHITE);
                 }
-
                 return c;
             }
         });
 
-        add(new JScrollPane(table),BorderLayout.CENTER);
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE),
+                "Reservations",0,0, new Font("Arial",Font.BOLD,14), Color.WHITE));
+        add(tableScroll, BorderLayout.CENTER);
 
+    
         details = new JTextArea();
         details.setEditable(false);
-        details.setBorder(BorderFactory.createTitledBorder("Reservation Details"));
         details.setBackground(Color.BLACK);
         details.setForeground(Color.WHITE);
-        add(new JScrollPane(details),BorderLayout.EAST);
+        details.setFont(new Font("Consolas", Font.PLAIN, 14));
+        details.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE),
+                "Reservation Details",0,0,new Font("Arial",Font.BOLD,14),Color.WHITE));
+        JScrollPane detailScroll = new JScrollPane(details);
+        detailScroll.setPreferredSize(new Dimension(300,0));
+        add(detailScroll, BorderLayout.EAST);
 
-        table.getSelectionModel().addListSelectionListener(e->showDetails());
+        table.getSelectionModel().addListSelectionListener(e -> showDetails());
 
-        JPanel panel = new JPanel();
-        panel.setBackground(Color.BLACK); 
+    
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setBackground(Color.BLACK);
+        bottomPanel.setLayout(new FlowLayout(FlowLayout.LEFT,10,10));
 
         JButton add = new JButton("Add");
         JButton edit = new JButton("Edit");
@@ -82,32 +86,40 @@ public class ReservationForm extends JFrame {
         JButton revenue = new JButton("Revenue");
         JButton export = new JButton("Export CSV");
 
-        search = new JTextField(10);
+        search = new JTextField(12);
+        search.setBackground(new Color(30,30,30));
+        search.setForeground(Color.WHITE);
+        search.setCaretColor(Color.WHITE);
         JButton searchBtn = new JButton("Search");
 
-        JButton[] btns={add,edit,delete,history,roomHistory,revenue,export,searchBtn};
-
+        JButton[] btns = {add, edit, delete, history, roomHistory, revenue, export, searchBtn};
         for(JButton b:btns){
-            b.setBackground(Color.WHITE); 
-            b.setForeground(Color.BLACK); 
+            b.setBackground(Color.WHITE);
+            b.setForeground(Color.BLACK);
+            b.setFocusPainted(false);
+            b.setFont(new Font("Arial",Font.BOLD,12));
+        
+            b.addMouseListener(new java.awt.event.MouseAdapter(){
+                public void mouseEntered(java.awt.event.MouseEvent evt){b.setBackground(Color.LIGHT_GRAY);}
+                public void mouseExited(java.awt.event.MouseEvent evt){b.setBackground(Color.WHITE);}
+            });
         }
 
-        panel.add(add);
-        panel.add(edit);
-        panel.add(delete);
-        panel.add(history);
-        panel.add(roomHistory);
-        panel.add(revenue);
-        panel.add(export);
-        panel.add(new JLabel("Search Room"){{
+        bottomPanel.add(add);
+        bottomPanel.add(edit);
+        bottomPanel.add(delete);
+        bottomPanel.add(history);
+        bottomPanel.add(roomHistory);
+        bottomPanel.add(revenue);
+        bottomPanel.add(export);
+        bottomPanel.add(new JLabel("Search Room"){{
             setForeground(Color.WHITE);
+            setFont(new Font("Arial",Font.BOLD,12));
         }});
-        search.setBackground(Color.DARK_GRAY);
-        search.setForeground(Color.WHITE);
-        panel.add(search);
-        panel.add(searchBtn);
+        bottomPanel.add(search);
+        bottomPanel.add(searchBtn);
 
-        add(panel,BorderLayout.SOUTH);
+        add(bottomPanel, BorderLayout.SOUTH);
 
         add.addActionListener(e->addReservation());
         edit.addActionListener(e->editReservation());
@@ -180,6 +192,8 @@ public class ReservationForm extends JFrame {
                 "Total Price : "+total
         );
     }
+
+
 
     void addReservation(){
         try{
