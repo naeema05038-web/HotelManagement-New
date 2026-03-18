@@ -4,6 +4,7 @@ import java.util.*;
 public class RoomManager implements Serializable {
 
     private static RoomManager instance;
+    
     private List<Room> rooms;
 
     private RoomManager() {
