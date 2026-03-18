@@ -1,9 +1,11 @@
-/*import javax.swing.*;
+
+import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.List;
 
 public class ReservationForm extends JFrame {
 
@@ -12,830 +14,435 @@ public class ReservationForm extends JFrame {
     JTextArea details;
     JTextField search;
 
+
+    int generateNextId() {
+    int max = 0;
+    for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
+        if (r.getId() > max) max = r.getId();
+    }
+    return max + 1;
+}
+
+    Font mainFont = new Font("Segoe UI", Font.PLAIN, 14);
+
     CustomerService customerService = new CustomerService();
+    RoomManager roomManager = RoomManager.getInstance();
 
     public ReservationForm() {
-
-        setTitle("Reservation Management");
-        setSize(1100,650);
+        setTitle("Hotel Reservation Management");
+        setSize(1300, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-
         getContentPane().setBackground(Color.BLACK);
+        setLayout(new BorderLayout(10, 10));
 
         model = new DefaultTableModel(
-                new String[]{"ID","Name","Email","Room","Type","Price/Day","Total","CheckIn","CheckOut"},0);
+                new String[]{"ID", "Customer", "Gender", "Email", "Phone", "City", "Country", "RoomNo", "Type", "Price/Day", "Total Price", "CheckIn", "CheckOut"}, 0);
 
         table = new JTable(model);
-        table.setRowHeight(25);
+        table.setRowHeight(28);
+        table.setFont(mainFont);
+        table.setBackground(Color.BLACK);
+        table.setForeground(Color.WHITE);
+        table.setSelectionBackground(new Color(0, 120, 215));
+        table.setSelectionForeground(Color.WHITE);
+        table.setGridColor(Color.DARK_GRAY);
 
-        add(new JScrollPane(table),BorderLayout.CENTER);
+        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                Reservation r = ReservationManager.getInstance().getAllReservations().get(table.convertRowIndexToModel(row));
+                LocalDate checkout = LocalDate.parse(r.getCheckOut());
+                if (!isSelected) {
+                    if (checkout.isBefore(LocalDate.now()))
+                        c.setBackground(Color.DARK_GRAY);
+                    else
+                        c.setBackground(row % 2 == 0 ? new Color(30, 30, 30) : Color.BLACK);
+                    c.setForeground(Color.WHITE);
+                } else {
+                    c.setBackground(new Color(0, 120, 215));
+                    c.setForeground(Color.WHITE);
+                }
+                return c;
+            }
+        });
+
+        JScrollPane tableScroll = new JScrollPane(table);
+        tableScroll.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE),
+                "Reservations", 0, 0, new Font("Arial", Font.BOLD, 14), Color.WHITE));
+        add(tableScroll, BorderLayout.CENTER);
 
         details = new JTextArea();
         details.setEditable(false);
         details.setBackground(Color.BLACK);
         details.setForeground(Color.WHITE);
-        details.setBorder(BorderFactory.createTitledBorder("Reservation Details"));
+        details.setFont(new Font("Consolas", Font.PLAIN, 14));
+        details.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.WHITE),
+                "Reservation Details", 0, 0, new Font("Arial", Font.BOLD, 14), Color.WHITE));
+        JScrollPane detailScroll = new JScrollPane(details);
+        detailScroll.setPreferredSize(new Dimension(320, 0));
+        add(detailScroll, BorderLayout.EAST);
 
-        add(new JScrollPane(details),BorderLayout.EAST);
+        table.getSelectionModel().addListSelectionListener(e -> showDetails());
 
-        table.getSelectionModel().addListSelectionListener(e->showDetails());
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        bottom.setBackground(Color.BLACK);
 
-        JPanel panel = new JPanel();
-        panel.setBackground(Color.BLACK);
+        JButton addBtn = new JButton("✚ Add");
+        JButton editBtn = new JButton("✎ Edit");
+        JButton deleteBtn = new JButton("🗑 Delete");
+        JButton customerHistoryBtn = new JButton("Customer History");
+        JButton roomHistoryBtn = new JButton("Room History");
+        JButton revenueBtn = new JButton("Revenue");
+        JButton exportBtn = new JButton("Export CSV");
 
-        JButton add = new JButton("Add");
-        JButton edit = new JButton("Edit");
-        JButton delete = new JButton("Delete");
-        JButton history = new JButton("Customer History");
-        JButton roomHistory = new JButton("Room History");
-        JButton revenue = new JButton("Revenue");
-
-        search = new JTextField(10);
+        search = new JTextField(12);
+        search.setBackground(new Color(30, 30, 30));
+        search.setForeground(Color.WHITE);
+        search.setCaretColor(Color.WHITE);
         JButton searchBtn = new JButton("Search");
 
-        JButton[] btns = {add,edit,delete,history,roomHistory,revenue,searchBtn};
-
-        for(JButton b:btns){
+        JButton[] btns = {addBtn, editBtn, deleteBtn, customerHistoryBtn, roomHistoryBtn, revenueBtn, exportBtn, searchBtn};
+        for (JButton b : btns) {
             b.setBackground(Color.WHITE);
             b.setForeground(Color.BLACK);
+            b.setFocusPainted(false);
+            b.setFont(new Font("Arial", Font.BOLD, 12));
+            b.addMouseListener(new java.awt.event.MouseAdapter() {
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    b.setBackground(Color.LIGHT_GRAY);
+                }
+
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    b.setBackground(Color.WHITE);
+                }
+            });
         }
 
-        panel.add(add);
-        panel.add(edit);
-        panel.add(delete);
-        panel.add(history);
-        panel.add(roomHistory);
-        panel.add(revenue);
-        panel.add(new JLabel("Search Room"));
-        panel.add(search);
-        panel.add(searchBtn);
+        bottom.add(addBtn);
+        bottom.add(editBtn);
+        bottom.add(deleteBtn);
+        bottom.add(customerHistoryBtn);
+        bottom.add(roomHistoryBtn);
+        bottom.add(revenueBtn);
+        bottom.add(exportBtn);
+        bottom.add(new JLabel("Search Room:") {{
+            setForeground(Color.WHITE);
+            setFont(new Font("Arial", Font.BOLD, 12));
+        }});
+        bottom.add(search);
+        bottom.add(searchBtn);
+        add(bottom, BorderLayout.SOUTH);
 
-        add(panel,BorderLayout.SOUTH);
-
-        add.addActionListener(e->addPopup());
-        edit.addActionListener(e->editPopup());
-        delete.addActionListener(e->deleteReservation());
-        history.addActionListener(e->customerHistory());
-        roomHistory.addActionListener(e->roomHistory());
-        revenue.addActionListener(e->showRevenue());
-        searchBtn.addActionListener(e->search());
+        addBtn.addActionListener(e -> openReservationPopup(null));
+        editBtn.addActionListener(e -> editReservation());
+        deleteBtn.addActionListener(e -> deleteReservation());
+        searchBtn.addActionListener(e -> search());
+        customerHistoryBtn.addActionListener(e -> showCustomerHistory());
+        roomHistoryBtn.addActionListener(e -> showRoomHistory());
+        revenueBtn.addActionListener(e -> showRevenue());
+        exportBtn.addActionListener(e -> exportCSV());
 
         loadTable();
         setVisible(true);
     }
 
-    void loadTable(){
+    
 
+    void loadTable() {
         model.setRowCount(0);
-
-        Iterator<Reservation> it = ReservationManager.getInstance().iterator();
-
-        while(it.hasNext()){
-
-            Reservation r = it.next();
-
-            long days = ChronoUnit.DAYS.between(
-                    LocalDate.parse(r.getCheckIn()),
-                    LocalDate.parse(r.getCheckOut()));
-
-            double pricePerDay = r.getPrice()/days;
-
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
+            long days = ChronoUnit.DAYS.between(LocalDate.parse(r.getCheckIn()), LocalDate.parse(r.getCheckOut()));
+            double pricePerDay = r.getPrice() / days;
             model.addRow(new Object[]{
-                    r.getId(),
-                    r.getName(),
-                    r.getEmail(),
-                    r.getRoomNo(),
-                    r.getRoomType(),
-                    pricePerDay,
-                    r.getPrice(),
-                    r.getCheckIn(),
-                    r.getCheckOut()
+                    r.getId(), r.getName(), r.getGender(), r.getEmail(), r.getPhone(), r.getCity(), r.getCountry(),
+                    r.getRoomNo(), r.getRoomType(), pricePerDay, r.getPrice(), r.getCheckIn(), r.getCheckOut()
             });
         }
     }
 
-    void showDetails(){
-
+    void showDetails() {
         int row = table.getSelectedRow();
-
-        if(row<0) return;
-
-        Reservation r = ReservationManager.getInstance().getAllReservations().get(row);
-
-        long days = ChronoUnit.DAYS.between(
-                LocalDate.parse(r.getCheckIn()),
-                LocalDate.parse(r.getCheckOut()));
-
-        double pricePerDay = r.getPrice()/days;
+        if (row < 0) return;
+        Reservation r = ReservationManager.getInstance().getAllReservations().get(table.convertRowIndexToModel(row));
+        long days = ChronoUnit.DAYS.between(LocalDate.parse(r.getCheckIn()), LocalDate.parse(r.getCheckOut()));
+        double pricePerDay = r.getPrice() / days;
 
         details.setText(
-
-                "Reservation ID : "+r.getId()+"\n\n"+
-
-                "Customer Name : "+r.getName()+"\n"+
-                "Email : "+r.getEmail()+"\n\n"+
-
-                "Room Number : "+r.getRoomNo()+"\n"+
-                "Room Type : "+r.getRoomType()+"\n\n"+
-
-                "Check In : "+r.getCheckIn()+"\n"+
-                "Check Out : "+r.getCheckOut()+"\n"+
-                "Days : "+days+"\n\n"+
-
-                "Price Per Day : "+pricePerDay+"\n"+
-                "Total Price : "+r.getPrice()
+                "Reservation ID: " + r.getId() +
+                        "\nCustomer Name: " + r.getName() +
+                        "\nGender: " + r.getGender() +
+                        "\nEmail: " + r.getEmail() +
+                        "\nPhone: " + r.getPhone() +
+                        "\nCity: " + r.getCity() +
+                        "\nCountry: " + r.getCountry() +
+                        "\n\nRoom Number: " + r.getRoomNo() +
+                        "\nRoom Type: " + r.getRoomType() +
+                        "\n\nCheck In: " + r.getCheckIn() +
+                        "\nCheck Out: " + r.getCheckOut() +
+                        "\nDays Stayed: " + days +
+                        "\nPrice Per Day: " + pricePerDay +
+                        "\nTotal Price: " + r.getPrice()
         );
     }
 
-    void addPopup(){
 
-        JDialog d = new JDialog(this,"Add Reservation",true);
-        d.setSize(400,400);
-        d.setLayout(new GridLayout(9,2,5,5));
-        d.setLocationRelativeTo(this);
+    void openReservationPopup(Reservation existing) {
 
-        JComboBox<Customer> customerBox =
-                new JComboBox<>(customerService.getCustomers().toArray(new Customer[0]));
+        JDialog dialog = new JDialog(this, existing == null ? "Add Reservation" : "Edit Reservation", true);
+        dialog.setSize(500, 550);
+        dialog.setLayout(new GridLayout(12, 2, 5, 5));
+        dialog.getContentPane().setBackground(Color.BLACK);
 
-        JTextField name = new JTextField();
-        JTextField email = new JTextField();
+        JComboBox<String> customerBox = new JComboBox<>();
+        JTextField nameField = new JTextField();
+        JTextField genderField = new JTextField();
+        JTextField emailField = new JTextField();
+        JTextField phoneField = new JTextField();
+        JTextField cityField = new JTextField();
+        JTextField countryField = new JTextField();
 
-        JComboBox<Room> roomBox =
-                new JComboBox<>(RoomManager.getInstance().getAllRooms().toArray(new Room[0]));
+        JComboBox<Integer> roomBox = new JComboBox<>();
+        JTextField roomTypeField = new JTextField();
+        JTextField priceField = new JTextField();
 
-        JTextField type = new JTextField();
-        JTextField price = new JTextField();
-        JTextField checkIn = new JTextField();
-        JTextField checkOut = new JTextField();
+        JTextField checkInField = new JTextField();
+        JTextField checkOutField = new JTextField();
 
-        JButton save = new JButton("Save");
+        for (Customer c : customerService.getCustomers()) {
+            customerBox.addItem(c.getFullName());
+        }
+for (Room room : roomManager.getAllRooms()) {
 
-        name.setEditable(false);
-        email.setEditable(false);
-        type.setEditable(false);
-        price.setEditable(false);
+    boolean isAvailable = true;
 
-        d.add(new JLabel("Customer"));
-        d.add(customerBox);
-        d.add(new JLabel("Name"));
-        d.add(name);
-        d.add(new JLabel("Email"));
-        d.add(email);
-        d.add(new JLabel("Room"));
-        d.add(roomBox);
-        d.add(new JLabel("Room Type"));
-        d.add(type);
-        d.add(new JLabel("Price/Day"));
-        d.add(price);
-        d.add(new JLabel("CheckIn yyyy-mm-dd"));
-        d.add(checkIn);
-        d.add(new JLabel("CheckOut yyyy-mm-dd"));
-        d.add(checkOut);
-        d.add(new JLabel(""));
-        d.add(save);
+    for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
 
-        customerBox.addActionListener(e->{
+        if (existing != null && r.getId() == existing.getId()) continue;
 
-            Customer c=(Customer)customerBox.getSelectedItem();
+        if (r.getRoomNo() == room.getRoomNo()) {
 
-            name.setText(c.getFullName());
-            email.setText(c.getEmail());
+            try {
+                LocalDate newIn = LocalDate.parse(checkInField.getText());
+                LocalDate newOut = LocalDate.parse(checkOutField.getText());
 
-        });
+                LocalDate oldIn = LocalDate.parse(r.getCheckIn());
+                LocalDate oldOut = LocalDate.parse(r.getCheckOut());
 
-        roomBox.addActionListener(e->{
-
-            Room r=(Room)roomBox.getSelectedItem();
-
-            type.setText(r.getTypeString());
-            price.setText(String.valueOf(r.getPrice()));
-
-        });
-
-        save.addActionListener(e->{
-
-            try{
-
-                Customer c=(Customer)customerBox.getSelectedItem();
-                Room r=(Room)roomBox.getSelectedItem();
-
-                LocalDate in=LocalDate.parse(checkIn.getText());
-                LocalDate out=LocalDate.parse(checkOut.getText());
-
-                long days=ChronoUnit.DAYS.between(in,out);
-
-                if(days<=0){
-
-                    JOptionPane.showMessageDialog(d,"Invalid dates");
-                    return;
-
+                if (!(newOut.isBefore(oldIn) || newIn.isAfter(oldOut))) {
+                    isAvailable = false;
+                    break;
                 }
 
-                double total=r.getPrice()*days;
-
-                Reservation res = new Reservation(
-
-                        ReservationManager.getInstance().generateId(),
-
-                        c.getFullName(),"",c.getEmail(),"","","","","",
-
-                        r.getRoomNo(),
-                        r.getTypeString(),
-                        total,
-
-                        in.toString(),
-                        out.toString()
-                );
-
-                ReservationManager.getInstance().addReservation(res);
-
-                loadTable();
-
-                d.dispose();
-
-            }catch(Exception ex){
-
-                JOptionPane.showMessageDialog(d,"Invalid Input");
-
-            }
-
-        });
-
-        d.setVisible(true);
-    }
-
-    void editPopup(){
-
-        int row=table.getSelectedRow();
-
-        if(row<0){
-            JOptionPane.showMessageDialog(this,"Select reservation");
-            return;
-        }
-
-        Reservation rOld =
-                ReservationManager.getInstance().getAllReservations().get(row);
-
-        JDialog d=new JDialog(this,"Edit Reservation",true);
-
-        d.setSize(400,400);
-        d.setLayout(new GridLayout(9,2,5,5));
-        d.setLocationRelativeTo(this);
-
-        JTextField name=new JTextField(rOld.getName());
-        JTextField email=new JTextField(rOld.getEmail());
-
-        JComboBox<Room> roomBox =
-                new JComboBox<>(RoomManager.getInstance().getAllRooms().toArray(new Room[0]));
-
-        JTextField type=new JTextField(rOld.getRoomType());
-        JTextField price=new JTextField(String.valueOf(rOld.getPrice()));
-
-        JTextField checkIn=new JTextField(rOld.getCheckIn());
-        JTextField checkOut=new JTextField(rOld.getCheckOut());
-
-        JButton save=new JButton("Save");
-
-        name.setEditable(false);
-        email.setEditable(false);
-        type.setEditable(false);
-        price.setEditable(false);
-
-        d.add(new JLabel("Name"));
-        d.add(name);
-        d.add(new JLabel("Email"));
-        d.add(email);
-        d.add(new JLabel("Room"));
-        d.add(roomBox);
-        d.add(new JLabel("Type"));
-        d.add(type);
-        d.add(new JLabel("Price"));
-        d.add(price);
-        d.add(new JLabel("CheckIn"));
-        d.add(checkIn);
-        d.add(new JLabel("CheckOut"));
-        d.add(checkOut);
-        d.add(new JLabel(""));
-        d.add(save);
-
-        save.addActionListener(e->{
-
-            try{
-
-                Room r=(Room)roomBox.getSelectedItem();
-
-                LocalDate in=LocalDate.parse(checkIn.getText());
-                LocalDate out=LocalDate.parse(checkOut.getText());
-
-                long days=ChronoUnit.DAYS.between(in,out);
-
-                double total=r.getPrice()*days;
-
-                Reservation res=new Reservation(
-
-                        rOld.getId(),
-
-                        name.getText(),"",email.getText(),"","","","","",
-
-                        r.getRoomNo(),
-                        r.getTypeString(),
-                        total,
-
-                        in.toString(),
-                        out.toString()
-                );
-
-                ReservationManager.getInstance().updateReservation(row,res);
-
-                loadTable();
-
-                d.dispose();
-
-            }catch(Exception ex){
-
-                JOptionPane.showMessageDialog(d,"Invalid Input");
-
-            }
-
-        });
-
-        d.setVisible(true);
-    }
-
-    void deleteReservation(){
-
-        int row=table.getSelectedRow();
-
-        if(row<0){
-            JOptionPane.showMessageDialog(this,"Select reservation");
-            return;
-        }
-
-        ReservationManager.getInstance().deleteReservation(row);
-
-        loadTable();
-    }
-
-    void customerHistory(){
-
-        int row=table.getSelectedRow();
-
-        if(row<0){
-            JOptionPane.showMessageDialog(this,"Select reservation");
-            return;
-        }
-
-        String email=table.getValueAt(row,2).toString();
-
-        Iterator<Reservation> it =
-                ReservationManager.getInstance().iteratorByCustomer(email);
-
-        StringBuilder sb=new StringBuilder();
-
-        sb.append("CUSTOMER BOOKING HISTORY\n\n");
-
-        while(it.hasNext()){
-
-            Reservation r=it.next();
-
-            sb.append("Reservation ID : ").append(r.getId()).append("\n");
-            sb.append("Customer : ").append(r.getName()).append("\n");
-            sb.append("Email : ").append(r.getEmail()).append("\n");
-            sb.append("Room : ").append(r.getRoomNo()).append("\n");
-            sb.append("Room Type : ").append(r.getRoomType()).append("\n");
-            sb.append("CheckIn : ").append(r.getCheckIn()).append("\n");
-            sb.append("CheckOut : ").append(r.getCheckOut()).append("\n");
-            sb.append("Total Paid : ").append(r.getPrice()).append("\n");
-
-            sb.append("---------------------------------\n\n");
-
-        }
-
-        JOptionPane.showMessageDialog(this,sb.toString());
-    }
-
-    void roomHistory(){
-
-        int row=table.getSelectedRow();
-
-        if(row<0){
-            JOptionPane.showMessageDialog(this,"Select reservation");
-            return;
-        }
-
-        int room=Integer.parseInt(table.getValueAt(row,3).toString());
-
-        Iterator<Reservation> it =
-                ReservationManager.getInstance().iteratorByRoom(room);
-
-        StringBuilder sb=new StringBuilder();
-
-        sb.append("ROOM BOOKING HISTORY\n\n");
-
-        while(it.hasNext()){
-
-            Reservation r=it.next();
-
-            sb.append("Reservation ID : ").append(r.getId()).append("\n");
-            sb.append("Customer : ").append(r.getName()).append("\n");
-            sb.append("Email : ").append(r.getEmail()).append("\n");
-            sb.append("CheckIn : ").append(r.getCheckIn()).append("\n");
-            sb.append("CheckOut : ").append(r.getCheckOut()).append("\n");
-            sb.append("Total Paid : ").append(r.getPrice()).append("\n");
-
-            sb.append("---------------------------------\n\n");
-        }
-
-        JOptionPane.showMessageDialog(this,sb.toString());
-    }
-
-    void showRevenue(){
-
-        double total=ReservationManager.getInstance().totalRevenue();
-
-        JOptionPane.showMessageDialog(this,"Total Revenue : "+total);
-    }
-
-    void search(){
-
-        String key=search.getText();
-
-        model.setRowCount(0);
-
-        for(Reservation r:ReservationManager.getInstance().getAllReservations()){
-
-            if(String.valueOf(r.getRoomNo()).contains(key)){
-
-                model.addRow(new Object[]{
-                        r.getId(),
-                        r.getName(),
-                        r.getEmail(),
-                        r.getRoomNo(),
-                        r.getRoomType(),
-                        r.getPrice(),
-                        r.getPrice(),
-                        r.getCheckIn(),
-                        r.getCheckOut()
-                });
+            } catch (Exception e) {
+                isAvailable = false;
             }
         }
     }
 
-    public static void main(String[] args) {
-
-        new ReservationForm();
-
+    if (isAvailable) {
+        roomBox.addItem(room.getRoomNo());
     }
 }
-    */
 
-import javax.swing.*;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
-import java.util.Iterator;
+        dialog.add(new JLabel("Customer Name") {{ setForeground(Color.WHITE); }}); dialog.add(customerBox);
+        dialog.add(new JLabel("Gender") {{ setForeground(Color.WHITE); }}); dialog.add(genderField);
+        dialog.add(new JLabel("Email") {{ setForeground(Color.WHITE); }}); dialog.add(emailField);
+        dialog.add(new JLabel("Phone") {{ setForeground(Color.WHITE); }}); dialog.add(phoneField);
+        dialog.add(new JLabel("City") {{ setForeground(Color.WHITE); }}); dialog.add(cityField);
+        dialog.add(new JLabel("Country") {{ setForeground(Color.WHITE); }}); dialog.add(countryField);
+        dialog.add(new JLabel("Room Number") {{ setForeground(Color.WHITE); }}); dialog.add(roomBox);
+        dialog.add(new JLabel("Room Type") {{ setForeground(Color.WHITE); }}); dialog.add(roomTypeField);
+        dialog.add(new JLabel("Price per Day") {{ setForeground(Color.WHITE); }}); dialog.add(priceField);
+        dialog.add(new JLabel("Check In yyyy-mm-dd") {{ setForeground(Color.WHITE); }}); dialog.add(checkInField);
+        dialog.add(new JLabel("Check Out yyyy-mm-dd") {{ setForeground(Color.WHITE); }}); dialog.add(checkOutField);
 
-public class ReservationForm extends JFrame {
+        JButton saveBtn = new JButton("Save");
+        saveBtn.setBackground(Color.WHITE);
+        saveBtn.setForeground(Color.BLACK);
+        dialog.add(new JLabel());
+        dialog.add(saveBtn);
 
-    JTable table;
-    DefaultTableModel model;
-    JTextArea txtInfo;
-    JTextField search;
+ 
+        if (existing != null) {
+            nameField.setText(existing.getName());
+            genderField.setText(existing.getGender());
+            emailField.setText(existing.getEmail());
+            phoneField.setText(existing.getPhone());
+            cityField.setText(existing.getCity());
+            countryField.setText(existing.getCountry());
+            roomBox.setSelectedItem(existing.getRoomNo());
+            roomTypeField.setText(existing.getRoomType());
 
-    public ReservationForm() {
+            long days = ChronoUnit.DAYS.between(LocalDate.parse(existing.getCheckIn()), LocalDate.parse(existing.getCheckOut()));
+            priceField.setText(String.valueOf(existing.getPrice() / days));
 
-        setTitle("Reservation Management");
-        setSize(1200, 650);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
-
-        // ---------------- TABLE ----------------
-        model = new DefaultTableModel(
-                new String[]{"ID", "Name", "Email", "Room", "Type", "Price", "CheckIn", "CheckOut"}, 0);
-
-        table = new JTable(model);
-
-        // Room status color: RED = future booking, GREEN = past/available
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            public Component getTableCellRendererComponent(
-                    JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int col) {
-
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, col);
-
-                try {
-                    LocalDate out = LocalDate.parse(table.getValueAt(row, 7).toString());
-                    if (out.isAfter(LocalDate.now()))
-                        c.setBackground(Color.RED);
-                    else
-                        c.setBackground(Color.GREEN);
-                } catch (Exception e) {
-                    c.setBackground(Color.WHITE);
-                }
-
-                return c;
-            }
-        });
-
-        add(new JScrollPane(table), BorderLayout.NORTH);
-
-        // ---------------- DETAILS TEXTAREA ----------------
-        txtInfo = new JTextArea(6, 100);
-        txtInfo.setEditable(false);
-        txtInfo.setForeground(Color.BLUE);
-        add(new JScrollPane(txtInfo), BorderLayout.CENTER);
-
-        // ---------------- BUTTONS ----------------
-        JPanel panel = new JPanel();
-
-        JButton add = new JButton("Add");
-        JButton edit = new JButton("Edit");
-        JButton delete = new JButton("Delete");
-        JButton history = new JButton("Customer History");
-        JButton roomHistory = new JButton("Room History");
-        JButton revenue = new JButton("Revenue");
-        JButton export = new JButton("Export CSV");
-
-        search = new JTextField(10);
-        JButton searchBtn = new JButton("Search");
-
-        JButton[] btns = {add, edit, delete, history, roomHistory, revenue, export, searchBtn};
-        for (JButton b : btns) {
-            b.setBackground(new Color(30, 144, 255));
-            b.setForeground(Color.WHITE);
+            checkInField.setText(existing.getCheckIn());
+            checkOutField.setText(existing.getCheckOut());
+            customerBox.setSelectedItem(existing.getName());
         }
 
-        panel.add(add);
-        panel.add(edit);
-        panel.add(delete);
-        panel.add(history);
-        panel.add(roomHistory);
-        panel.add(revenue);
-        panel.add(export);
-        panel.add(new JLabel("Search Room"));
-        panel.add(search);
-        panel.add(searchBtn);
 
-        add(panel, BorderLayout.SOUTH);
 
-        // ---------------- EVENT LISTENERS ----------------
-        add.addActionListener(e -> openReservationDialog(null));
-        edit.addActionListener(e -> editReservation());
-        delete.addActionListener(e -> deleteReservation());
-        searchBtn.addActionListener(e -> searchReservation());
-        history.addActionListener(e -> showCustomerHistory());
-        roomHistory.addActionListener(e -> showRoomHistory());
-        revenue.addActionListener(e -> showRevenue());
-        export.addActionListener(e -> exportCSV());
-
-        table.getSelectionModel().addListSelectionListener(e -> showReservationDetails());
-
-        loadTable();
-        setVisible(true);
-    }
-
-    // ---------------- LOAD TABLE ----------------
-    void loadTable() {
-        model.setRowCount(0);
-        Iterator<Reservation> it = ReservationManager.getInstance().iterator();
-        while (it.hasNext()) {
-            Reservation r = it.next();
-            model.addRow(new Object[]{
-                    r.getId(),
-                    r.getName(),
-                    r.getEmail(),
-                    r.getRoomNo(),
-                    r.getRoomType(),
-                    r.getPrice(),
-                    r.getCheckIn(),
-                    r.getCheckOut()
-            });
+    
+customerBox.addActionListener(e -> {
+    String cName = (String) customerBox.getSelectedItem();
+    Customer selected = null;
+    for (Customer c : customerService.getCustomers()) {
+        if (c.getFullName().equals(cName)) {
+            selected = c;
+            break;
         }
     }
-
-    // ---------------- SHOW DETAILS ----------------
-    void showReservationDetails() {
-        int row = table.getSelectedRow();
-        if (row == -1) {
-            txtInfo.setText("");
-            return;
-        }
-
-        Reservation r = ReservationManager.getInstance().getAllReservations().get(row);
-        StringBuilder sb = new StringBuilder();
-        sb.append("Reservation ID: ").append(r.getId()).append("\n");
-        sb.append("Customer Name: ").append(r.getName()).append("\n");
-        sb.append("Email: ").append(r.getEmail()).append("\n");
-        sb.append("Phone: ").append(r.getPhone()).append("\n");
-        sb.append("City: ").append(r.getCity()).append(", Country: ").append(r.getCountry()).append("\n");
-        sb.append("Room No: ").append(r.getRoomNo()).append(", Type: ").append(r.getRoomType()).append("\n");
-        sb.append("Price: ").append(r.getPrice()).append("\n");
-        sb.append("CheckIn: ").append(r.getCheckIn()).append("\n");
-        sb.append("CheckOut: ").append(r.getCheckOut()).append("\n");
-        txtInfo.setText(sb.toString());
+    if (selected != null) {
+        nameField.setText(selected.getFullName());
+        genderField.setText(selected.getGender().toString());
+        emailField.setText(selected.getEmail());
+        phoneField.setText(selected.getPhone());
+        cityField.setText(selected.getCity());
+        countryField.setText(selected.getCountry());
     }
+});
 
-    // ---------------- ADD / EDIT DIALOG ----------------
-    void openReservationDialog(Reservation existing) {
 
-        JTextField id = new JTextField();
-        JComboBox<Customer> customerBox = new JComboBox<>();
-        JTextField gender = new JTextField();
-        JTextField email = new JTextField();
-        JTextField phone = new JTextField();
-        JTextField city = new JTextField();
-        JTextField country = new JTextField();
-        JTextField nid = new JTextField();
-        JTextField consent = new JTextField();
-        JComboBox<Room> roomBox = new JComboBox<>();
-        JTextField type = new JTextField();
-        JTextField price = new JTextField();
-        JTextField in = new JTextField();
-        JTextField out = new JTextField();
-
-        // Load customers
-        for (Customer c : new CustomerService().getCustomers())
-            customerBox.addItem(c);
-
-        customerBox.addActionListener(e -> {
-            Customer sel = (Customer) customerBox.getSelectedItem();
-            if (sel != null) {
-                gender.setText(sel.getGender().toString());
-                email.setText(sel.getEmail());
-                phone.setText(sel.getPhone());
-                city.setText(sel.getCity());
-                country.setText(sel.getCountry());
-                consent.setText(String.valueOf(sel.isConsent()));
-            }
-        });
-
-        // Load rooms
-        for (Room r : RoomManager.getInstance().getAllRooms())
-            roomBox.addItem(r);
-
-        roomBox.addActionListener(e -> {
-            Room sel = (Room) roomBox.getSelectedItem();
-            if (sel != null) {
-                type.setText(sel.getTypeString());
-                price.setText(String.valueOf(sel.getPrice()));
-            }
-        });
-
-        if (existing == null)
-            id.setText("" + ReservationManager.getInstance().generateNextId());
-        else {
-            id.setText("" + existing.getId());
-            in.setText(existing.getCheckIn());
-            out.setText(existing.getCheckOut());
-
-            // Pre-select customer
-            for (int i = 0; i < customerBox.getItemCount(); i++)
-                if (customerBox.getItemAt(i).getEmail().equals(existing.getEmail())) {
-                    customerBox.setSelectedIndex(i);
-                    break;
-                }
-
-            // Pre-select room
-            for (int i = 0; i < roomBox.getItemCount(); i++)
-                if (roomBox.getItemAt(i).getRoomNo() == existing.getRoomNo()) {
-                    roomBox.setSelectedIndex(i);
-                    break;
-                }
+    roomBox.addActionListener(e -> {
+    Integer rId = (Integer) roomBox.getSelectedItem();
+    Room selectedRoom = null;
+    for (Room r : roomManager.getAllRooms()) {
+        if (r.getRoomNo() == rId) {
+            selectedRoom = r;
+            break;
         }
+    }
+    if (selectedRoom != null) {
+        roomTypeField.setText(selectedRoom.getType().toString());
+        priceField.setText(String.valueOf(selectedRoom.getPrice()));
+    }
+});
 
-        Object[] fields = {
-                "ID", id,
-                "Customer", customerBox,
-                "Gender", gender,
-                "Email", email,
-                "Phone", phone,
-                "City", city,
-                "Country", country,
-                "NID", nid,
-                "Consent", consent,
-                "Room", roomBox,
-                "Type", type,
-                "Price", price,
-                "CheckIn (yyyy-MM-dd)", in,
-                "CheckOut (yyyy-MM-dd)", out
-        };
-
-        int option = JOptionPane.showConfirmDialog(this, fields, existing == null ? "Add Reservation" : "Edit Reservation", JOptionPane.OK_CANCEL_OPTION);
-        if (option == JOptionPane.OK_OPTION) {
-
-            // VALIDATION
-            LocalDate checkInDate, checkOutDate;
+        saveBtn.addActionListener(e -> {
             try {
-                checkInDate = LocalDate.parse(in.getText());
-                checkOutDate = LocalDate.parse(out.getText());
-                if (checkOutDate.isBefore(checkInDate)) {
-                    JOptionPane.showMessageDialog(this, "CheckOut must be after CheckIn");
+                int id = existing == null ? generateNextId() : existing.getId();
+
+                long days = ChronoUnit.DAYS.between(LocalDate.parse(checkInField.getText()), LocalDate.parse(checkOutField.getText()));
+                double total = Double.parseDouble(priceField.getText()) * days;
+
+                if (roomBox.getSelectedItem() == null) {
+                    JOptionPane.showMessageDialog(dialog, "No room available");
                     return;
-                }
-            } catch (DateTimeParseException ex) {
-                JOptionPane.showMessageDialog(this, "Invalid date format");
-                return;
+}
+                Reservation r = new Reservation(
+                        id, nameField.getText(), genderField.getText(), emailField.getText(),
+                        phoneField.getText(), cityField.getText(), countryField.getText(),
+                        "", "", (Integer) roomBox.getSelectedItem(), roomTypeField.getText(),
+                        total, checkInField.getText(), checkOutField.getText()
+                );
+
+                if (existing == null)
+                    ReservationManager.getInstance().addReservation(r);
+                else
+                    ReservationManager.getInstance().updateReservation(
+                            ReservationManager.getInstance().getAllReservations().indexOf(existing), r);
+
+                loadTable();
+                dialog.dispose();
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(dialog, "Invalid input");
             }
+        });
 
-            Room room = (Room) roomBox.getSelectedItem();
-            if (!ReservationManager.getInstance().isRoomAvailable(room.getRoomNo(), in.getText(), out.getText(), Integer.parseInt(id.getText()))) {
-                JOptionPane.showMessageDialog(this, "Room not available for selected dates");
-                return;
-            }
-
-            Customer c = (Customer) customerBox.getSelectedItem();
-
-            Reservation res = ReservationFactory.createReservation(
-                    Integer.parseInt(id.getText()),
-                    c.getFullName(),
-                    c.getGender().toString(),
-                    c.getEmail(),
-                    c.getPhone(),
-                    c.getCity(),
-                    c.getCountry(),
-                    nid.getText(),
-                    consent.getText(),
-                    room.getRoomNo(),
-                    room.getTypeString(),
-                    room.getPrice(),
-                    in.getText(),
-                    out.getText()
-            );
-
-            if (existing == null)
-                ReservationManager.getInstance().addReservation(res);
-            else
-                ReservationManager.getInstance().updateReservation(table.getSelectedRow(), res);
-
-            loadTable();
-        }
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
-    // ---------------- EDIT / DELETE ----------------
     void editReservation() {
         int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Select reservation"); return; }
-        Reservation r = ReservationManager.getInstance().getAllReservations().get(row);
-        openReservationDialog(r);
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select reservation to edit");
+            return;
+        }
+        Reservation r = ReservationManager.getInstance().getAllReservations().get(table.convertRowIndexToModel(row));
+        openReservationPopup(r);
     }
 
     void deleteReservation() {
         int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Select reservation"); return; }
-        ReservationManager.getInstance().deleteReservation(row);
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select reservation to delete");
+            return;
+        }
+        ReservationManager.getInstance().deleteReservation(table.convertRowIndexToModel(row));
         loadTable();
     }
 
-    // ---------------- SEARCH ----------------
-    void searchReservation() {
+    void search() {
         String key = search.getText();
         model.setRowCount(0);
         for (Reservation r : ReservationManager.getInstance().getAllReservations()) {
-            if (String.valueOf(r.getRoomNo()).contains(key)) {
+            if (String.valueOf(r.getRoomNo()).contains(key) || r.getName().toLowerCase().contains(key.toLowerCase())) {
+                long days = ChronoUnit.DAYS.between(LocalDate.parse(r.getCheckIn()), LocalDate.parse(r.getCheckOut()));
+                double pricePerDay = r.getPrice() / days;
                 model.addRow(new Object[]{
-                        r.getId(), r.getName(), r.getEmail(),
-                        r.getRoomNo(), r.getRoomType(),
-                        r.getPrice(), r.getCheckIn(), r.getCheckOut()
+                        r.getId(), r.getName(), r.getGender(), r.getEmail(), r.getPhone(), r.getCity(), r.getCountry(),
+                        r.getRoomNo(), r.getRoomType(), pricePerDay, r.getPrice(), r.getCheckIn(), r.getCheckOut()
                 });
             }
         }
     }
 
-    // ---------------- CUSTOMER / ROOM HISTORY ----------------
     void showCustomerHistory() {
         int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Select reservation"); return; }
-        String email = table.getValueAt(row, 2).toString();
-        Iterator<Reservation> it = ReservationManager.getInstance().iteratorByCustomer(email);
-        StringBuilder sb = new StringBuilder();
-        while (it.hasNext()) {
-            Reservation r = it.next();
-            sb.append("Room ").append(r.getRoomNo()).append(" | ").append(r.getCheckIn())
-                    .append(" -> ").append(r.getCheckOut()).append("\n");
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select reservation");
+            return;
         }
-        JOptionPane.showMessageDialog(this, sb.toString());
+        String name = table.getValueAt(row, 1).toString();
+        List<Reservation> list = new ArrayList<>();
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) if (r.getName().equalsIgnoreCase(name)) list.add(r);
+
+        JTextArea area = new JTextArea();
+        area.setEditable(false);
+        area.setBackground(Color.BLACK);
+        area.setForeground(Color.WHITE);
+        StringBuilder sb = new StringBuilder();
+        for (Reservation r : list) {
+            sb.append("Room ").append(r.getRoomNo()).append(" | ").append(r.getRoomType()).append(" | ")
+                    .append(r.getCheckIn()).append(" -> ").append(r.getCheckOut()).append(" | Price: ").append(r.getPrice()).append("\n");
+        }
+        area.setText(sb.toString());
+        JOptionPane.showMessageDialog(this, new JScrollPane(area), "Customer History: " + name, JOptionPane.INFORMATION_MESSAGE);
     }
 
     void showRoomHistory() {
         int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Select reservation"); return; }
-        int roomNo = (int) table.getValueAt(row, 3);
-        Iterator<Reservation> it = ReservationManager.getInstance().iteratorByRoom(roomNo);
-        StringBuilder sb = new StringBuilder();
-        while (it.hasNext()) {
-            Reservation r = it.next();
-            sb.append(r.getName()).append(" | ").append(r.getCheckIn())
-                    .append(" -> ").append(r.getCheckOut()).append("\n");
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "Select reservation");
+            return;
         }
-        JOptionPane.showMessageDialog(this, sb.toString());
+        int roomNo = Integer.parseInt(table.getValueAt(row, 7).toString());
+        List<Reservation> list = new ArrayList<>();
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) if (r.getRoomNo() == roomNo) list.add(r);
+
+        JTextArea area = new JTextArea();
+        area.setEditable(false);
+        area.setBackground(Color.BLACK);
+        area.setForeground(Color.WHITE);
+        StringBuilder sb = new StringBuilder();
+        for (Reservation r : list) {
+            sb.append(r.getName()).append(" | ").append(r.getCheckIn()).append(" -> ").append(r.getCheckOut()).append(" | Price: ").append(r.getPrice()).append("\n");
+        }
+        area.setText(sb.toString());
+        JOptionPane.showMessageDialog(this, new JScrollPane(area), "Room History: " + roomNo, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // ---------------- REVENUE / CSV ----------------
     void showRevenue() {
-        JOptionPane.showMessageDialog(this, "Total Revenue: " + ReservationManager.getInstance().totalRevenue());
+        double total = 0;
+        for (Reservation r : ReservationManager.getInstance().getAllReservations()) total += r.getPrice();
+        JOptionPane.showMessageDialog(this, "Total Revenue: " + total);
     }
 
     void exportCSV() {
