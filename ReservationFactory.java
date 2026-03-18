@@ -4,6 +4,7 @@ public class ReservationFactory {
                                                 String email, String phone, String city,
                                                 String country, String nid, String consent,
                                                 int roomNo, String roomType, double price,
+                                                
                                                 String checkIn, String checkOut) {
 
         return new Reservation(id, name, gender, email, phone, city, country,
