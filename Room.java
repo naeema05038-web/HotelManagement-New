@@ -9,6 +9,7 @@ public class Room implements Serializable {
     private int capacity;
     private String cleanStatus;
     private boolean available;
+    
 
     public Room(int roomNo, RoomType type, double price, int floor, int capacity, String cleanStatus, boolean available) {
         this.roomNo = roomNo;
