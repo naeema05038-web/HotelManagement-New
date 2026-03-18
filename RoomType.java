@@ -1,5 +1,6 @@
 public enum RoomType {
     SINGLE, DOUBLE, SUITE;
+    
 
     @Override
     public String toString() {
